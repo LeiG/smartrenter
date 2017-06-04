@@ -185,18 +185,16 @@ function removeMarker(location) {
 
 function addMarker(property, isPrincipalProperty = true) {
 
-  var pinColor = (isPrincipalProperty ? "FE7569" : "FFC433");
-  var pinImage = new google.maps.MarkerImage(
-    "http://chart.apis.google.com/chart?chst=d_map_pin_letter&chld=%E2%80%A2|" + pinColor,
-    new google.maps.Size(21, 34),
-    new google.maps.Point(0,0),
-    new google.maps.Point(10, 34)
-  );
   var pinShadow = new google.maps.MarkerImage(
     "http://chart.apis.google.com/chart?chst=d_map_pin_shadow",
     new google.maps.Size(40, 37),
     new google.maps.Point(0, 0),
     new google.maps.Point(12, 35)
+  );
+  var mapIcon = (
+    isPrincipalProperty ?
+      'https://www.google.com/mapfiles/marker.png' :
+      'https://www.google.com/mapfiles/marker_yellow.png'
   );
 
   var contentString = '<div id="content">' +
@@ -222,23 +220,21 @@ function addMarker(property, isPrincipalProperty = true) {
   var marker = new google.maps.Marker({
     map: map,
     position: property.address.location,
-    icon: pinImage,
+    icon: mapIcon,
     shadow: pinShadow,
     buborek: contentString
   });
 
-  //   var infowindow = new google.maps.InfoWindow({
-  //   content: contentString
-  // });
-
   google.maps.event.addListener(marker, 'click', function(){
+    var icon = marker.getIcon();
+
+    if (icon != 'https://www.google.com/mapfiles/marker.png') {
+      marker.setIcon('https://www.google.com/mapfiles/marker_green.png');
+    }
+
     infowindow.setContent(this.buborek);
     infowindow.open(map,this);
   });
-
-  // marker.addListener('click', function() {
-  //   infowindow.open(map, marker);
-  // });
 
   markers.push(marker);
 
