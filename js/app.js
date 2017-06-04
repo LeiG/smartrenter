@@ -1,6 +1,7 @@
 'use strict';
 
 const zws_id = "X1-ZWz196h1g1ceff_4eq90";
+const minZoom = 17;
 
 var geocoder, map;
 var markers = [];
@@ -13,7 +14,7 @@ function viewModel() {
   map = new google.maps.Map(document.getElementById('map'), {
     center: {lat: 37.558, lng: -122.271},
     scrollwheel: false,
-    zoom: 17,
+    zoom: minZoom,
     mapTypeId: google.maps.MapTypeId.SATELLITE
   });
 
@@ -86,7 +87,6 @@ function viewModel() {
         // comparable properties
         xmlContent.find('comp').each(function(i, v) {
           var tmpProperty = parseProperty($(v));
-          console.log(tmpProperty.ptrRatio);
           self.propertyList.push(tmpProperty);
          });
       }
@@ -100,7 +100,7 @@ function viewModel() {
       var tmpProperty = self.propertyList()[i];
 
       if (tmpProperty.ptrRatio > minPtrRatio) {
-        addMarker(tmpProperty.address.location);
+        addMarker(tmpProperty.address.location, false);
       } else {
         removeMarker(tmpProperty.address.location);
       }
@@ -161,11 +161,27 @@ function removeMarker(location) {
   }
 }
 
-function addMarker(location) {
+function addMarker(location, isPrincipalProperty = true) {
+
+  var pinColor = (isPrincipalProperty ? "FE7569" : "FFC433");
+  var pinImage = new google.maps.MarkerImage(
+    "http://chart.apis.google.com/chart?chst=d_map_pin_letter&chld=%E2%80%A2|" + pinColor,
+    new google.maps.Size(21, 34),
+    new google.maps.Point(0,0),
+    new google.maps.Point(10, 34)
+  );
+  var pinShadow = new google.maps.MarkerImage(
+    "http://chart.apis.google.com/chart?chst=d_map_pin_shadow",
+    new google.maps.Size(40, 37),
+    new google.maps.Point(0, 0),
+    new google.maps.Point(12, 35)
+  );
 
   var marker = new google.maps.Marker({
     map: map,
-    position: location
+    position: location,
+    icon: pinImage,
+    shadow: pinShadow
   });
   markers.push(marker);
 
@@ -175,6 +191,7 @@ function addMarker(location) {
   }
 
   map.fitBounds(bounds);
+  if (map.getZoom() > minZoom) map.setZoom(minZoom);
 }
 
 function setMapOnAll(map) {
