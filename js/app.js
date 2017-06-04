@@ -20,62 +20,165 @@ function viewModel() {
   self.address = ko.observable("");
   self.ptrRatio = ko.observable(25);
   self.ptrRatioText = self.ptrRatio;
-  self.location = ko.observable();
+  self.location = ko.observable("");
+  self.zpid = ko.observable();
   self.property = ko.observable();
-  self.propertyList = ko.observable();
+  self.propertyList = ko.observableArray([]);
 
   self.updateAddress = function() {
 
     self.address(self.address());
-    self.location(updateLocation(self.address()));
-    getZillowSearchResults();
+
+    updateLocation(self.address(), self);
   };
 
-  getZillowSearchResults("632 Matsonia Dr", "Foster City, CA 94404");
+  ko.computed(function() {
+    var xmlSource = [
+      "http://www.zillow.com/webservice/GetSearchResults.htm",
+      `?zws-id=${zws_id}`,
+      `&address=${encodeURIComponent(self.location().address)}`,
+      `&citystatezip=${encodeURIComponent(self.location().zipcode)}`,
+    ].join("");
+
+    var yqlURL = [
+      "http://query.yahooapis.com/v1/public/yql",
+      "?q=" + encodeURIComponent("select * from xml where url='" + xmlSource + "'"),
+      "&format=xml&callback=?"
+    ].join("");
+
+    return $.ajax({
+      dataType: "json",
+      url: yqlURL,
+      success: function(data) {
+        var xmlContent = $(data.results[0]);
+        var zpid = xmlContent.find('zpid').text();
+        self.zpid(zpid);
+      }
+    });
+  }, self).extend({async: true});
+
+  ko.computed(function() {
+    var xmlSource = [
+      "http://www.zillow.com/webservice/GetDeepComps.htm",
+      `?zws-id=${zws_id}`,
+      `&zpid=${self.zpid()}`,
+      `&count=25`,
+      `&rentzestimate=true`,
+    ].join("");
+
+    var yqlURL = [
+      "http://query.yahooapis.com/v1/public/yql",
+      "?q=" + encodeURIComponent("select * from xml where url='" + xmlSource + "'"),
+      "&format=xml&callback=?"
+    ].join("");
+
+    return $.ajax({
+      dataType: "json",
+      url: yqlURL,
+      success: function(data) {
+        var xmlContent = $(data.results[0]);
+
+        // principal property
+        var principalXml = xmlContent.find('principal');
+        var principalProperty = parseProperty(principalXml);
+        self.property(principalProperty);
+
+        // comparable properties
+        xmlContent.find('comp').each(function(i, v) {
+          var tmpProperty = parseProperty($(v));
+          console.log(tmpProperty.ptrRatio);
+          self.propertyList.push(tmpProperty);
+         });
+      }
+    });
+  }, self).extend({async: true});
+
+  self.showPropertyList = ko.computed(function() {
+    var minPtrRatio = Number(self.ptrRatio());
+
+    for (let i = 0; i < self.propertyList().length; i++) {
+      var tmpProperty = self.propertyList()[i];
+
+      if (tmpProperty.ptrRatio > minPtrRatio) {
+        addMarker(tmpProperty.address.location);
+      } else {
+        removeMarker(tmpProperty.address.location);
+      }
+    }
+  }, self);
 }
 
-function getZillowSearchResults(address, zipcode, rentzestimate = true) {
-  var xmlSource = [
-    "http://www.zillow.com/webservice/GetSearchResults.htm",
-    `?zws-id=${zws_id}`,
-    `&address=${encodeURIComponent(address)}`,
-    `&citystatezip=${encodeURIComponent(zipcode)}`,
-    `&rentzestimate=${rentzestimate}`
-  ].join("");
+function parseProperty(xmlString) {
+  var property = {
+    zpid: xmlString.find('zpid').text(),
+    address: {
+      street: xmlString.find('street').text(),
+      zipcode: xmlString.find('zipcode').text(),
+      city: xmlString.find('city').text(),
+      state: xmlString.find('state').text(),
+      // {lat, lng}
+      location: {
+        lat: Number(xmlString.find('latitude').text()),
+        lng: Number(xmlString.find('longitude').text())
+      }
+    },
+    yearbuilt: xmlString.find('yearbuilt').text(),
+    lotsizesqft: xmlString.find('lotsizesqft').text(),
+    bathrooms: xmlString.find('bathrooms').text(),
+    bedrooms: xmlString.find('bedrooms').text(),
+    totalrooms: xmlString.find('totalrooms').text(),
+    zestimate: xmlString.find('zestimate').find('amount').text(),
+    rentzestimate: xmlString.find('rentzestimate').find('amount').text(),
+    homedetails: xmlString.find('homedetails').text(),
+    ptrRatio: Number(xmlString.find('zestimate').find('amount').text()) / (12 * xmlString.find('rentzestimate').find('amount').text())
+  };
 
-  var yqlURL = [
-    "http://query.yahooapis.com/v1/public/yql",
-    "?q=" + encodeURIComponent("select * from xml where url='" + xmlSource + "'"),
-    "&format=xml&callback=?"
-  ].join("");
-
-  $.getJSON(yqlURL, function(data){
-    var xmlContent = $(data.results[0]);
-    console.log(xmlContent.find('zpid').text());
-  });
+  return property;
 }
 
-function updateLocation(address) {
-  geocoder.geocode( { 'address': address}, function(results, status) {
+function updateLocation(address, self) {
+  geocoder.geocode({ 'address': address}, function(results, status) {
     if (status == 'OK') {
       setMarker(results[0].geometry.location);
-      return results[0];
+      var address_components = results[0].address_components;
+      self.location({
+        address: address_components[0].short_name + " " + address_components[1].short_name,
+        zipcode: address_components[6].short_name
+      });
     } else {
       alert('Geocode was not successful for the following reason: ' + status);
-      return null;
     }
   });
 }
 
+function removeMarker(location) {
+  var tmpLatLng = new google.maps.LatLng(location);
+
+  for (let i = 0; i < markers.length; i++) {
+    if (markers[i].getPosition().equals(tmpLatLng)) {
+      markers[i].setMap(null);
+    }
+  }
+}
+
 function addMarker(location) {
+
   var marker = new google.maps.Marker({
     map: map,
     position: location
   });
   markers.push(marker);
+
+  var bounds = new google.maps.LatLngBounds();
+  for (let i = 0; i < markers.length; i++) {
+    bounds.extend(markers[i].getPosition());
+  }
+
+  map.fitBounds(bounds);
 }
 
 function setMapOnAll(map) {
+
   for (let i = 0; i < markers.length; i++) {
     markers[i].setMap(map);
   }
