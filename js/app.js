@@ -3,7 +3,7 @@
 const zws_id = "X1-ZWz196h1g1ceff_4eq90";
 const minZoom = 17;
 
-var geocoder, map;
+var geocoder, map, infowindow;
 var markers = [];
 
 function viewModel() {
@@ -17,6 +17,8 @@ function viewModel() {
     zoom: minZoom,
     mapTypeId: google.maps.MapTypeId.SATELLITE
   });
+  infowindow = new google.maps.InfoWindow();
+
 
   self.address = ko.observable("632 Matsonia Dr, Foster City, CA 94404");
   self.bedrooms = ko.observable(1);
@@ -197,13 +199,6 @@ function addMarker(property, isPrincipalProperty = true) {
     new google.maps.Point(12, 35)
   );
 
-  var marker = new google.maps.Marker({
-    map: map,
-    position: property.address.location,
-    icon: pinImage,
-    shadow: pinShadow
-  });
-
   var contentString = '<div id="content">' +
         `<h4>${property.address.street}, ${property.address.city}, ${property.address.state} ${property.address.zipcode}</h4>` +
         '<ul style="list-style: none; padding-left:0;">' +
@@ -223,13 +218,27 @@ function addMarker(property, isPrincipalProperty = true) {
         `<li><b>More details</b>: <a href="${property.homedetails}" target="_blank">check it out on Zillow...</a></li>` +
         '</ul>' +
         '</div>';
-  var infowindow = new google.maps.InfoWindow({
-    content: contentString
+
+  var marker = new google.maps.Marker({
+    map: map,
+    position: property.address.location,
+    icon: pinImage,
+    shadow: pinShadow,
+    buborek: contentString
   });
 
-  marker.addListener('click', function() {
-    infowindow.open(map, marker);
+  //   var infowindow = new google.maps.InfoWindow({
+  //   content: contentString
+  // });
+
+  google.maps.event.addListener(marker, 'click', function(){
+    infowindow.setContent(this.buborek);
+    infowindow.open(map,this);
   });
+
+  // marker.addListener('click', function() {
+  //   infowindow.open(map, marker);
+  // });
 
   markers.push(marker);
 
