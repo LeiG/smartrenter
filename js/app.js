@@ -11,6 +11,7 @@ function viewModel() {
 
   geocoder = new google.maps.Geocoder();
 
+  // initialize map
   map = new google.maps.Map(document.getElementById('map'), {
     center: {lat: 37.558, lng: -122.271},
     scrollwheel: false,
@@ -32,6 +33,7 @@ function viewModel() {
   self.property = ko.observable();
   self.propertyList = ko.observableArray([]);
 
+  // update address when clicked go
   self.updateAddress = function() {
 
     self.address(self.address());
@@ -47,6 +49,8 @@ function viewModel() {
       `&citystatezip=${encodeURIComponent(self.location().zipcode)}`,
     ].join("");
 
+    // workaround "Access-Control-Allow-Origin" error
+    // jsonp won't work here because of the returned value is XML
     var yqlURL = [
       "http://query.yahooapis.com/v1/public/yql",
       "?q=" + encodeURIComponent("select * from xml where url='" + xmlSource + "'"),
@@ -70,6 +74,7 @@ function viewModel() {
     });
   }, self).extend({async: true});
 
+  // update stored property list based on input address
   ko.computed(function() {
     var xmlSource = [
       "http://www.zillow.com/webservice/GetDeepComps.htm",
@@ -110,6 +115,7 @@ function viewModel() {
     });
   }, self).extend({async: true});
 
+  // update property list being displayed
   self.showPropertyList = ko.computed(function() {
     var minPtrRatio = Number(self.ptrRatio());
     var numBedrooms = Number(self.bedrooms());
@@ -130,6 +136,7 @@ function viewModel() {
   }, self);
 }
 
+// parse property data from Zillow api
 function parseProperty(xmlString) {
   var property = {
     zpid: xmlString.find('zpid').text(),
@@ -225,6 +232,7 @@ function addMarker(property, isPrincipalProperty = true) {
     buborek: contentString
   });
 
+  // only open one infowindow at a time
   google.maps.event.addListener(marker, 'click', function(){
     var icon = marker.getIcon();
 
@@ -238,6 +246,7 @@ function addMarker(property, isPrincipalProperty = true) {
 
   markers.push(marker);
 
+  // adjust zoom level based on the displayed markers
   var bounds = new google.maps.LatLngBounds();
   for (let i = 0; i < markers.length; i++) {
     bounds.extend(markers[i].getPosition());
