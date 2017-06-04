@@ -18,10 +18,14 @@ function viewModel() {
     mapTypeId: google.maps.MapTypeId.SATELLITE
   });
 
-  self.address = ko.observable("");
+  self.address = ko.observable("632 Matsonia Dr, Foster City, CA 94404");
+  self.bedrooms = ko.observable(1);
+  self.bedroomsText = self.bedrooms;
+  self.bathrooms = ko.observable(1);
+  self.bathroomsText = self.bathrooms;
   self.ptrRatio = ko.observable(25);
   self.ptrRatioText = self.ptrRatio;
-  self.location = ko.observable("");
+  self.location = ko.observable({address: "632 Matsonia Dr", zipcode: "94404"});
   self.zpid = ko.observable();
   self.property = ko.observable();
   self.propertyList = ko.observableArray([]);
@@ -53,7 +57,13 @@ function viewModel() {
       success: function(data) {
         var xmlContent = $(data.results[0]);
         var zpid = xmlContent.find('zpid').text();
-        self.zpid(zpid);
+        if (zpid != "") {
+          self.zpid(zpid);
+        } else {
+          // clear all markers
+          setMapOnAll(null);
+          alert(`Oops, we couldn't find a property on ${self.location().address}, ${self.location().zipcode} from Zillow...`);
+        }
       }
     });
   }, self).extend({async: true});
@@ -82,7 +92,12 @@ function viewModel() {
         // principal property
         var principalXml = xmlContent.find('principal');
         var principalProperty = parseProperty(principalXml);
+
+        if(principalProperty.zpid != "") setMarker(principalProperty);
+
         self.property(principalProperty);
+        self.bedrooms(self.property().bedrooms);
+        self.bathrooms(self.property().bathrooms);
 
         // comparable properties
         xmlContent.find('comp').each(function(i, v) {
@@ -95,12 +110,17 @@ function viewModel() {
 
   self.showPropertyList = ko.computed(function() {
     var minPtrRatio = Number(self.ptrRatio());
+    var numBedrooms = Number(self.bedrooms());
+    var numBathrooms = Number(self.bathrooms());
 
     for (let i = 0; i < self.propertyList().length; i++) {
       var tmpProperty = self.propertyList()[i];
 
-      if (tmpProperty.ptrRatio > minPtrRatio) {
-        addMarker(tmpProperty.address.location, false);
+      if (tmpProperty.ptrRatio > minPtrRatio &&
+          tmpProperty.bedrooms >= numBedrooms &&
+          tmpProperty.bathrooms >= numBathrooms
+         ) {
+        addMarker(tmpProperty, false);
       } else {
         removeMarker(tmpProperty.address.location);
       }
@@ -124,8 +144,8 @@ function parseProperty(xmlString) {
     },
     yearbuilt: xmlString.find('yearbuilt').text(),
     lotsizesqft: xmlString.find('lotsizesqft').text(),
-    bathrooms: xmlString.find('bathrooms').text(),
-    bedrooms: xmlString.find('bedrooms').text(),
+    bathrooms: Number(xmlString.find('bathrooms').text()),
+    bedrooms: Number(xmlString.find('bedrooms').text()),
     totalrooms: xmlString.find('totalrooms').text(),
     zestimate: xmlString.find('zestimate').find('amount').text(),
     rentzestimate: xmlString.find('rentzestimate').find('amount').text(),
@@ -139,7 +159,7 @@ function parseProperty(xmlString) {
 function updateLocation(address, self) {
   geocoder.geocode({ 'address': address}, function(results, status) {
     if (status == 'OK') {
-      setMarker(results[0].geometry.location);
+      // setMarker(results[0].geometry.location);
       var address_components = results[0].address_components;
       self.location({
         address: address_components[0].short_name + " " + address_components[1].short_name,
@@ -161,7 +181,7 @@ function removeMarker(location) {
   }
 }
 
-function addMarker(location, isPrincipalProperty = true) {
+function addMarker(property, isPrincipalProperty = true) {
 
   var pinColor = (isPrincipalProperty ? "FE7569" : "FFC433");
   var pinImage = new google.maps.MarkerImage(
@@ -179,10 +199,38 @@ function addMarker(location, isPrincipalProperty = true) {
 
   var marker = new google.maps.Marker({
     map: map,
-    position: location,
+    position: property.address.location,
     icon: pinImage,
     shadow: pinShadow
   });
+
+  var contentString = '<div id="content">' +
+        `<h4>${property.address.street}, ${property.address.city}, ${property.address.state} ${property.address.zipcode}</h4>` +
+        '<ul style="list-style: none; padding-left:0;">' +
+        `<li><b>Total rooms</b>: ${property.totalrooms}</li>` +
+        '<ul type="disc">' +
+        `<li>bedrooms: ${property.bedrooms}</li>` +
+        `<li>bathrooms: ${property.bathrooms}</li>` +
+        '</ul>' +
+        `<li><b>Lot square ft</b>: ${property.lotsizesqft}</li>` +
+        `<li><b>Year built</b>: ${property.yearbuilt}</li>` +
+        '<li><b>Estimate</b></li>' +
+        '<ul type="disc">' +
+        `<li>price: $ ${property.zestimate}</li>` +
+        `<li>rent: $ ${property.rentzestimate}</li>` +
+        `<li>price-to-rent ratio: ${property.ptrRatio.toFixed(2)}</li>` +
+        '</ul>' +
+        `<li><b>More details</b>: <a href="${property.homedetails}" target="_blank">check it out on Zillow...</a></li>` +
+        '</ul>' +
+        '</div>';
+  var infowindow = new google.maps.InfoWindow({
+    content: contentString
+  });
+
+  marker.addListener('click', function() {
+    infowindow.open(map, marker);
+  });
+
   markers.push(marker);
 
   var bounds = new google.maps.LatLngBounds();
@@ -201,13 +249,13 @@ function setMapOnAll(map) {
   }
 }
 
-function setMarker(location) {
+function setMarker(property) {
 
   // Clear all markers
   setMapOnAll(null);
 
-  map.setCenter(location);
-  addMarker(location);
+  map.setCenter(property.address.location);
+  addMarker(property);
 }
 
 function initApp() {
