@@ -1,7 +1,9 @@
 'use strict';
 
-const zws_id = "X1-ZWz196h1g1ceff_4eq90";
-const minZoom = 17;
+const SETTINGS = {
+  zws_id: "X1-ZWz196h1g1ceff_4eq90",
+  minZoom: 17
+};
 
 var geocoder, map, infowindow;
 var markers = [];
@@ -10,23 +12,22 @@ function viewModel() {
   var self = this;
 
   geocoder = new google.maps.Geocoder();
+  infowindow = new google.maps.InfoWindow();
 
   // initialize map
   map = new google.maps.Map(document.getElementById('map'), {
     center: {lat: 37.558, lng: -122.271},
     scrollwheel: false,
-    zoom: minZoom,
+    zoom: SETTINGS.minZoom,
     mapTypeId: google.maps.MapTypeId.SATELLITE
   });
-  infowindow = new google.maps.InfoWindow();
-
 
   self.address = ko.observable("632 Matsonia Dr, Foster City, CA 94404");
   self.bedrooms = ko.observable(1);
   self.bedroomsText = self.bedrooms;
   self.bathrooms = ko.observable(1);
   self.bathroomsText = self.bathrooms;
-  self.ptrRatio = ko.observable(25);
+  self.ptrRatio = ko.observable(10);
   self.ptrRatioText = self.ptrRatio;
   self.location = ko.observable({address: "632 Matsonia Dr", zipcode: "94404"});
   self.zpid = ko.observable();
@@ -38,13 +39,17 @@ function viewModel() {
 
     self.address(self.address());
 
+    // clear all markers
+    setMapOnAll(null);
+    markers = [];
+
     updateLocation(self.address(), self);
   };
 
   ko.computed(function() {
     var xmlSource = [
       "http://www.zillow.com/webservice/GetSearchResults.htm",
-      `?zws-id=${zws_id}`,
+      `?zws-id=${SETTINGS.zws_id}`,
       `&address=${encodeURIComponent(self.location().address)}`,
       `&citystatezip=${encodeURIComponent(self.location().zipcode)}`,
     ].join("");
@@ -59,18 +64,20 @@ function viewModel() {
 
     return $.ajax({
       dataType: "json",
-      url: yqlURL,
-      success: function(data) {
-        var xmlContent = $(data.results[0]);
-        var zpid = xmlContent.find('zpid').text();
-        if (zpid != "") {
-          self.zpid(zpid);
-        } else {
-          // clear all markers
-          setMapOnAll(null);
-          alert(`Oops, we couldn't find a property on ${self.location().address}, ${self.location().zipcode} from Zillow...`);
-        }
+      url: yqlURL
+    }).done(function(data) {
+      var xmlContent = $(data.results[0]);
+      var zpid = xmlContent.find('zpid').text();
+      if (zpid != "") {
+        self.zpid(zpid);
+      } else {
+        // clear all markers
+        setMapOnAll(null);
+        alert(`Oops, we couldn't find a property on ${self.location().address}, ${self.location().zipcode} from Zillow...`);
       }
+    }).fail(function(error) {
+      setMapOnAll(null);
+      alert('We hate to have you experience errors and we are working our ass off to fix it!');
     });
   }, self).extend({async: true});
 
@@ -78,7 +85,7 @@ function viewModel() {
   ko.computed(function() {
     var xmlSource = [
       "http://www.zillow.com/webservice/GetDeepComps.htm",
-      `?zws-id=${zws_id}`,
+      `?zws-id=${SETTINGS.zws_id}`,
       `&zpid=${self.zpid()}`,
       `&count=25`,
       `&rentzestimate=true`,
@@ -92,48 +99,49 @@ function viewModel() {
 
     return $.ajax({
       dataType: "json",
-      url: yqlURL,
-      success: function(data) {
-        var xmlContent = $(data.results[0]);
+      url: yqlURL
+    }).done(function(data) {
+      var xmlContent = $(data.results[0]);
 
-        // principal property
-        var principalXml = xmlContent.find('principal');
-        var principalProperty = parseProperty(principalXml);
+      // principal property
+      var principalXml = xmlContent.find('principal');
+      var principalProperty = parseProperty(principalXml);
 
-        if(principalProperty.zpid != "") setMarker(principalProperty);
+      if(principalProperty.zpid != "") addMarker(principalProperty);
 
-        self.property(principalProperty);
-        self.bedrooms(self.property().bedrooms);
-        self.bathrooms(self.property().bathrooms);
+      self.property(principalProperty);
 
-        // comparable properties
-        xmlContent.find('comp').each(function(i, v) {
-          var tmpProperty = parseProperty($(v));
-          self.propertyList.push(tmpProperty);
-         });
-      }
+      // comparable properties
+      xmlContent.find('comp').each(function(i, v) {
+        var tmpProperty = parseProperty($(v));
+        self.propertyList.push(tmpProperty);
+        addMarker(tmpProperty, false);
+      });
+    }).fail(function(error) {
+      setMapOnAll(null);
+      alert('We hate to have you experience errors and we are working our ass off to fix it!');
     });
   }, self).extend({async: true});
 
   // update property list being displayed
-  self.showPropertyList = ko.computed(function() {
+  ko.computed(function() {
     var minPtrRatio = Number(self.ptrRatio());
     var numBedrooms = Number(self.bedrooms());
     var numBathrooms = Number(self.bathrooms());
 
-    for (let i = 0; i < self.propertyList().length; i++) {
-      var tmpProperty = self.propertyList()[i];
-
-      if (tmpProperty.ptrRatio > minPtrRatio &&
-          tmpProperty.bedrooms >= numBedrooms &&
-          tmpProperty.bathrooms >= numBathrooms
-         ) {
-        addMarker(tmpProperty, false);
-      } else {
-        removeMarker(tmpProperty.address.location);
+    markers.forEach(function(markerProperty) {
+      if (markerProperty[2] == false) {
+        if (markerProperty[1].ptrRatio > minPtrRatio &&
+            markerProperty[1].bedrooms >= numBedrooms &&
+            markerProperty[1].bathrooms >= numBathrooms
+           ) {
+             markerProperty[0].setVisible(true);
+           } else {
+             markerProperty[0].setVisible(false);
+           }
       }
-    }
-  }, self);
+    });
+  }, self).extend({async: true});
 }
 
 // parse property data from Zillow api
@@ -180,15 +188,15 @@ function updateLocation(address, self) {
   });
 }
 
-function removeMarker(location) {
-  var tmpLatLng = new google.maps.LatLng(location);
+// function removeMarker(location) {
+//   var tmpLatLng = new google.maps.LatLng(location);
 
-  for (let i = 0; i < markers.length; i++) {
-    if (markers[i].getPosition().equals(tmpLatLng)) {
-      markers[i].setMap(null);
-    }
-  }
-}
+//   markers.forEach(function(marker) {
+//     if (marker.getPosition().equals(tmpLatLng)) {
+//       marker.setMap(null);
+//     }
+//   });
+// }
 
 function addMarker(property, isPrincipalProperty = true) {
 
@@ -244,23 +252,23 @@ function addMarker(property, isPrincipalProperty = true) {
     infowindow.open(map,this);
   });
 
-  markers.push(marker);
+  markers.push([marker, property, isPrincipalProperty]);
 
   // adjust zoom level based on the displayed markers
   var bounds = new google.maps.LatLngBounds();
-  for (let i = 0; i < markers.length; i++) {
-    bounds.extend(markers[i].getPosition());
-  }
+  markers.forEach(function(markerProperty) {
+    bounds.extend(markerProperty[0].getPosition());
+  });
 
   map.fitBounds(bounds);
-  if (map.getZoom() > minZoom) map.setZoom(minZoom);
+  if (map.getZoom() > SETTINGS.minZoom) map.setZoom(SETTINGS.minZoom);
 }
 
 function setMapOnAll(map) {
 
-  for (let i = 0; i < markers.length; i++) {
-    markers[i].setMap(map);
-  }
+  markers.forEach(function(markerProperty) {
+    markerProperty[0].setMap(map);
+  });
 }
 
 function setMarker(property) {
@@ -270,6 +278,10 @@ function setMarker(property) {
 
   map.setCenter(property.address.location);
   addMarker(property);
+}
+
+function errorApp() {
+  alert('Google map API is not loaded correctly...');
 }
 
 function initApp() {
