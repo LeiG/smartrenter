@@ -24,26 +24,28 @@ function viewModel() {
 
   self.address = ko.observable("632 Matsonia Dr, Foster City, CA 94404");
   self.bedrooms = ko.observable(1);
-  self.bedroomsText = self.bedrooms;
   self.bathrooms = ko.observable(1);
-  self.bathroomsText = self.bathrooms;
   self.ptrRatio = ko.observable(10);
-  self.ptrRatioText = self.ptrRatio;
   self.location = ko.observable({address: "632 Matsonia Dr", zipcode: "94404"});
   self.zpid = ko.observable();
   self.property = ko.observable();
   self.propertyList = ko.observableArray([]);
+  self.showPropertyList = ko.observableArray(self.propertyList());
 
   // update address when clicked go
   self.updateAddress = function() {
 
-    self.address(self.address());
+    var newAddress = $("#address-text").val();
 
-    // clear all markers
-    setMapOnAll(null);
-    markers = [];
+    if (newAddress != self.address()) {
+      self.address(newAddress);
 
-    updateLocation(self.address(), self);
+      // clear all markers
+      setMapOnAll(null);
+      markers = [];
+
+      updateLocation(self.address(), self);
+    }
   };
 
   ko.computed(function() {
@@ -128,6 +130,7 @@ function viewModel() {
     var minPtrRatio = Number(self.ptrRatio());
     var numBedrooms = Number(self.bedrooms());
     var numBathrooms = Number(self.bathrooms());
+    self.showPropertyList(self.propertyList());
 
     markers.forEach(function(markerProperty) {
       if (markerProperty[2] == false) {
@@ -136,8 +139,12 @@ function viewModel() {
             markerProperty[1].bathrooms >= numBathrooms
            ) {
              markerProperty[0].setVisible(true);
+             if (self.showPropertyList.indexOf(markerProperty[1]) === -1) {
+               self.showPropertyList.push(markerProperty[1]);
+             }
            } else {
              markerProperty[0].setVisible(false);
+             self.showPropertyList.remove(markerProperty[1]);
            }
       }
     });
@@ -176,7 +183,6 @@ function parseProperty(xmlString) {
 function updateLocation(address, self) {
   geocoder.geocode({ 'address': address}, function(results, status) {
     if (status == 'OK') {
-      // setMarker(results[0].geometry.location);
       var address_components = results[0].address_components;
       self.location({
         address: address_components[0].short_name + " " + address_components[1].short_name,
@@ -187,16 +193,6 @@ function updateLocation(address, self) {
     }
   });
 }
-
-// function removeMarker(location) {
-//   var tmpLatLng = new google.maps.LatLng(location);
-
-//   markers.forEach(function(marker) {
-//     if (marker.getPosition().equals(tmpLatLng)) {
-//       marker.setMap(null);
-//     }
-//   });
-// }
 
 function addMarker(property, isPrincipalProperty = true) {
 

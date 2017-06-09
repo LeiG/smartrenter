@@ -9,33 +9,45 @@
   <body>
     <div class="container">
       <div class="options-box">
+
         <h1>Smart Renter</h1>
+
         <div>
           <span class="text">Enter a real estate property and explore similar ones!</span>
           <form data-bind="submit: updateAddress">
-            <input id="address-text" type="text" data-bind="value: address" placeholder="Ex: Google Office NYC or 75 9th Ave, New York, NY">
+            <input id="address-text" type="text" value="632 Matsonia Dr, Foster City, CA 94404" placeholder="Ex: Google Office NYC or 75 9th Ave, New York, NY">
             <button type="submit">Go!</button>
           </form>
 
           <div>
             <span class="text">Minimum num of bedrooms</span>
             <input id="bedrooms" type="range" min="1" max="5" step="1" data-bind="value: bedrooms" placeholder="1">
-            <span data-bind="text: bedroomsText"></span>
+            <span data-bind="text: bedrooms"></span>
           </div>
 
           <div>
             <span class="text">Minimum num of bathrooms</span>
             <input id="bathrooms" type="range" min="1" max="5" step="1" data-bind="value: bathrooms" placeholder="1">
-            <span data-bind="text: bathroomsText"></span>
+            <span data-bind="text: bathrooms"></span>
           </div>
 
           <div>
             <span class="text">Minimum price-to-rent ratio</span>
             <input id="ptr-ratio" type="range" min="10" max="50" step="1" data-bind="value: ptrRatio" placeholder="10">
-            <span data-bind="text: ptrRatioText"></span>
+            <span data-bind="text: ptrRatio"></span>
           </div>
         </div>
+
+        <hr>
+
+        <h4 id="list-view-title">Listings</h4>
+        <div class="list-view">
+          <ul class="listing-view" data-bind="foreach: showPropertyList">
+            <li data-bind="text: address.street"></li>
+          </ul>
+        </div>
       </div>
+
       <div id="map"></div>
     </div>
 
