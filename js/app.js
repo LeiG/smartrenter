@@ -149,6 +149,18 @@ function viewModel() {
       }
     });
   }, self).extend({async: true});
+
+  self.selectList = function(that, list) {
+    markers.forEach(function(markerProperty) {
+      if (markerProperty[1] == list) {
+        var marker = markerProperty[0];
+        marker.setIcon('https://www.google.com/mapfiles/marker_green.png');
+
+        infowindow.setContent(marker.buborek);
+        infowindow.open(map, marker);
+      }
+    });
+  };
 }
 
 // parse property data from Zillow api
@@ -245,7 +257,7 @@ function addMarker(property, isPrincipalProperty = true) {
     }
 
     infowindow.setContent(this.buborek);
-    infowindow.open(map,this);
+    infowindow.open(map, this);
   });
 
   markers.push([marker, property, isPrincipalProperty]);

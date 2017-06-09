@@ -43,7 +43,7 @@
         <h4 id="list-view-title">Listings</h4>
         <div class="list-view">
           <ul class="listing-view" data-bind="foreach: showPropertyList">
-            <li data-bind="text: address.street"></li>
+            <li class="listing-view-item" data-bind="text: address.street, click: function(){$parent.selectList($parent, $data)}"></li>
           </ul>
         </div>
       </div>
