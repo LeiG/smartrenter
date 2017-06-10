@@ -1,8 +1,8 @@
 'use strict';
 
 const SETTINGS = {
-  zws_id: "X1-ZWz196h1g1ceff_4eq90",
-  minZoom: 17
+  ZWS_ID: "X1-ZWz196h1g1ceff_4eq90",
+  MIN_ZOOM: 17
 };
 
 var geocoder, map, infowindow;
@@ -18,10 +18,18 @@ function viewModel() {
   map = new google.maps.Map(document.getElementById('map'), {
     center: {lat: 37.558, lng: -122.271},
     scrollwheel: false,
-    zoom: SETTINGS.minZoom,
-    mapTypeId: google.maps.MapTypeId.SATELLITE
+    zoom: SETTINGS.MIN_ZOOM,
+    mapTypeId: google.maps.MapTypeId.SATELLITE,
+    fullscreenControl: false
   });
 
+  self.optionBox = ko.observable(true);
+
+  self.clickShowBox = function() {
+    self.optionBox(!self.optionBox());
+  };
+
+  self.addressText = ko.observable("632 Matsonia Dr, Foster City, CA 94404");
   self.address = ko.observable("632 Matsonia Dr, Foster City, CA 94404");
   self.bedrooms = ko.observable(1);
   self.bathrooms = ko.observable(1);
@@ -35,14 +43,17 @@ function viewModel() {
   // update address when clicked go
   self.updateAddress = function() {
 
-    var newAddress = $("#address-text").val();
+    if (self.addressText() != self.address()) {
 
-    if (newAddress != self.address()) {
-      self.address(newAddress);
+      self.address(self.addressText());
 
       // clear all markers
       setMapOnAll(null);
       markers = [];
+      self.zpid(null);
+      self.property(null);
+      self.propertyList([]);
+      self.showPropertyList([]);
 
       updateLocation(self.address(), self);
     }
@@ -51,7 +62,7 @@ function viewModel() {
   ko.computed(function() {
     var xmlSource = [
       "http://www.zillow.com/webservice/GetSearchResults.htm",
-      `?zws-id=${SETTINGS.zws_id}`,
+      `?zws-id=${SETTINGS.ZWS_ID}`,
       `&address=${encodeURIComponent(self.location().address)}`,
       `&citystatezip=${encodeURIComponent(self.location().zipcode)}`,
     ].join("");
@@ -87,7 +98,7 @@ function viewModel() {
   ko.computed(function() {
     var xmlSource = [
       "http://www.zillow.com/webservice/GetDeepComps.htm",
-      `?zws-id=${SETTINGS.zws_id}`,
+      `?zws-id=${SETTINGS.ZWS_ID}`,
       `&zpid=${self.zpid()}`,
       `&count=25`,
       `&rentzestimate=true`,
@@ -154,10 +165,8 @@ function viewModel() {
     markers.forEach(function(markerProperty) {
       if (markerProperty[1] == list) {
         var marker = markerProperty[0];
-        marker.setIcon('https://www.google.com/mapfiles/marker_green.png');
 
-        infowindow.setContent(marker.buborek);
-        infowindow.open(map, marker);
+        google.maps.event.trigger(marker, 'click');
       }
     });
   };
@@ -193,7 +202,7 @@ function parseProperty(xmlString) {
 }
 
 function updateLocation(address, self) {
-  geocoder.geocode({ 'address': address}, function(results, status) {
+  geocoder.geocode({'address': address}, function(results, status) {
     if (status == 'OK') {
       var address_components = results[0].address_components;
       self.location({
@@ -201,6 +210,7 @@ function updateLocation(address, self) {
         zipcode: address_components[6].short_name
       });
     } else {
+      self.location();
       alert('Geocode was not successful for the following reason: ' + status);
     }
   });
@@ -252,6 +262,12 @@ function addMarker(property, isPrincipalProperty = true) {
   google.maps.event.addListener(marker, 'click', function(){
     var icon = marker.getIcon();
 
+    markers.forEach(function(m) {
+      if (m[0].getIcon != 'https://www.google.com/mapfiles/marker.png') {
+        m[0].setIcon('https://www.google.com/mapfiles/marker_yellow.png');
+      }
+    });
+
     if (icon != 'https://www.google.com/mapfiles/marker.png') {
       marker.setIcon('https://www.google.com/mapfiles/marker_green.png');
     }
@@ -269,7 +285,7 @@ function addMarker(property, isPrincipalProperty = true) {
   });
 
   map.fitBounds(bounds);
-  if (map.getZoom() > SETTINGS.minZoom) map.setZoom(SETTINGS.minZoom);
+  if (map.getZoom() > SETTINGS.MIN_ZOOM) map.setZoom(SETTINGS.MIN_ZOOM);
 }
 
 function setMapOnAll(map) {

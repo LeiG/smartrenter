@@ -4,18 +4,19 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <link rel="stylesheet" href="css/main.css">
+    <link rel="stylesheet" href="css/responsive.css">
     <title>Smart Renter</title>
   </head>
   <body>
     <div class="container">
-      <div class="options-box">
+      <aside class="options-box" data-bind="visible: optionBox">
 
         <h1>Smart Renter</h1>
 
-        <div>
+        <section>
           <span class="text">Enter a real estate property and explore similar ones!</span>
           <form data-bind="submit: updateAddress">
-            <input id="address-text" type="text" value="632 Matsonia Dr, Foster City, CA 94404" placeholder="Ex: Google Office NYC or 75 9th Ave, New York, NY">
+            <input id="address-text" type="text" data-bind="value: addressText" value="632 Matsonia Dr, Foster City, CA 94404" placeholder="Ex: Google Office NYC or 75 9th Ave, New York, NY">
             <button type="submit">Go!</button>
           </form>
 
@@ -36,7 +37,7 @@
             <input id="ptr-ratio" type="range" min="10" max="50" step="1" data-bind="value: ptrRatio" placeholder="10">
             <span data-bind="text: ptrRatio"></span>
           </div>
-        </div>
+        </section>
 
         <hr>
 
@@ -46,14 +47,18 @@
             <li class="listing-view-item" data-bind="text: address.street, click: function(){$parent.selectList($parent, $data)}"></li>
           </ul>
         </div>
-      </div>
+      </aside>
 
-      <div id="map"></div>
+      <button class="hamburger" data-bind="click: clickShowBox, visible: !optionBox()">&#9776;</button>
+      <button class="cross" data-bind="click: clickShowBox, visible: optionBox">&#735;</button>
+
+      <main id="map"></main>
     </div>
 
     <script src="js/app.js"></script>
     <script src="js/lib/knockout-3.4.2.js"></script>
     <script src="js/lib/jquery-3.2.1.min.js"></script>
+    <script src="js/lib/jquery-ui.min.js"></script>
     <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyDtYxppIBQcEABkJuI0uwUw6_NBIa60sOU&callback=initApp" onerror="errorApp()" async defer></script>
 
   </body>

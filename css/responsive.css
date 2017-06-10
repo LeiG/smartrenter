@@ -1,0 +1,16 @@
+@media only screen and (min-width: 800px) {
+  .hamburger {
+    display: none;
+  }
+  .cross {
+    display: none;
+  }
+
+  .options-box {
+    display: initial !important;
+  }
+
+  #map {
+    left: 362px;
+  }
+}
