@@ -1,10 +1,9 @@
-'use strict';
-
 const SETTINGS = {
   ZWS_ID: "X1-ZWz196h1g1ceff_4eq90",
   MIN_ZOOM: 17
 };
 
+var alert, google, ko;
 var geocoder, map, infowindow;
 var markers = [];
 
@@ -43,7 +42,7 @@ function viewModel() {
   // update address when clicked go
   self.updateAddress = function() {
 
-    if (self.addressText() != self.address()) {
+    if (self.addressText() !== self.address()) {
 
       self.address(self.addressText());
 
@@ -81,7 +80,7 @@ function viewModel() {
     }).done(function(data) {
       var xmlContent = $(data.results[0]);
       var zpid = xmlContent.find('zpid').text();
-      if (zpid != "") {
+      if (zpid !== "") {
         self.zpid(zpid);
       } else {
         // clear all markers
@@ -120,7 +119,7 @@ function viewModel() {
       var principalXml = xmlContent.find('principal');
       var principalProperty = parseProperty(principalXml);
 
-      if(principalProperty.zpid != "") addMarker(principalProperty);
+      if(principalProperty.zpid !== "") addMarker(principalProperty);
 
       self.property(principalProperty);
 
@@ -144,7 +143,7 @@ function viewModel() {
     self.showPropertyList(self.propertyList());
 
     markers.forEach(function(markerProperty) {
-      if (markerProperty[2] == false) {
+      if (markerProperty[2] === false) {
         if (markerProperty[1].ptrRatio > minPtrRatio &&
             markerProperty[1].bedrooms >= numBedrooms &&
             markerProperty[1].bathrooms >= numBathrooms
@@ -163,7 +162,7 @@ function viewModel() {
 
   self.selectList = function(that, list) {
     markers.forEach(function(markerProperty) {
-      if (markerProperty[1] == list) {
+      if (markerProperty[1] === list) {
         var marker = markerProperty[0];
 
         google.maps.event.trigger(marker, 'click');
@@ -203,7 +202,7 @@ function parseProperty(xmlString) {
 
 function updateLocation(address, self) {
   geocoder.geocode({'address': address}, function(results, status) {
-    if (status == 'OK') {
+    if (status === 'OK') {
       var address_components = results[0].address_components;
       self.location({
         address: address_components[0].short_name + " " + address_components[1].short_name,
