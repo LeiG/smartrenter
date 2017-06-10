@@ -263,12 +263,12 @@ function addMarker(property, isPrincipalProperty = true) {
     var icon = marker.getIcon();
 
     markers.forEach(function(m) {
-      if (m[0].getIcon != 'https://www.google.com/mapfiles/marker.png') {
+      if (!m[2]) {
         m[0].setIcon('https://www.google.com/mapfiles/marker_yellow.png');
       }
     });
 
-    if (icon != 'https://www.google.com/mapfiles/marker.png') {
+    if (icon !== 'https://www.google.com/mapfiles/marker.png') {
       marker.setIcon('https://www.google.com/mapfiles/marker_green.png');
     }
 
