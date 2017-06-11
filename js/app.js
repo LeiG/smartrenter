@@ -1,5 +1,3 @@
-'use strict';
-
 const SETTINGS = {
   ZWS_ID: "X1-ZWz196h1g1ceff_4eq90",
   MIN_ZOOM: 17
