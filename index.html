@@ -14,37 +14,38 @@
         <h1>Smart Renter</h1>
 
         <section>
-          <span class="text">Enter a real estate property and explore similar ones!</span>
+
+          <h4>Enter a rental property to find similar ones!</h4>
           <form data-bind="submit: updateAddress">
-            <input id="address-text" type="text" data-bind="value: addressText" value="632 Matsonia Dr, Foster City, CA 94404" placeholder="Ex: Google Office NYC or 75 9th Ave, New York, NY">
+            <input class="text" id="address-text" type="text" data-bind="value: addressText" value="632 Matsonia Dr, Foster City, CA 94404" placeholder="Ex: Google Office NYC or 75 9th Ave, New York, NY">
             <button type="submit">Go!</button>
           </form>
 
           <div>
             <span class="text">Minimum num of bedrooms</span>
-            <input id="bedrooms" type="range" min="1" max="5" step="1" data-bind="value: bedrooms" placeholder="1">
+            <input class="text" id="bedrooms" type="range" min="1" max="5" step="1" data-bind="value: bedrooms">
             <span data-bind="text: bedrooms"></span>
           </div>
 
           <div>
             <span class="text">Minimum num of bathrooms</span>
-            <input id="bathrooms" type="range" min="1" max="5" step="1" data-bind="value: bathrooms" placeholder="1">
+            <input class="text" id="bathrooms" type="range" min="1" max="5" step="1" data-bind="value: bathrooms">
             <span data-bind="text: bathrooms"></span>
           </div>
 
           <div>
             <span class="text">Minimum price-to-rent ratio</span>
-            <input id="ptr-ratio" type="range" min="10" max="50" step="1" data-bind="value: ptrRatio" placeholder="10">
+            <input class="text" id="ptr-ratio" type="range" min="10" max="50" step="1" data-bind="value: ptrRatio">
             <span data-bind="text: ptrRatio"></span>
           </div>
         </section>
 
         <hr>
 
-        <h4 id="list-view-title">Listings</h4>
+        <h4 class="list-view" id="list-view-title">Listings</h4>
         <div class="list-view">
           <ul class="listing-view" data-bind="foreach: showPropertyList">
-            <li class="listing-view-item" data-bind="text: address.street, click: function(){$parent.selectList($parent, $data)}"></li>
+            <li class="listing-view-item" data-bind="text: address.street, click: $parent.selectList($parent, $data)"></li>
           </ul>
         </div>
       </aside>
@@ -52,7 +53,7 @@
       <button class="hamburger" data-bind="click: clickShowBox, visible: !optionBox()">&#9776;</button>
       <button class="cross" data-bind="click: clickShowBox, visible: optionBox">&#735;</button>
 
-      <main id="map"></main>
+      <main id="map" class="map-canvas"></main>
     </div>
 
     <script src="js/app.js"></script>

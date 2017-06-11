@@ -1,6 +1,6 @@
 # Smart Renter
 
-Smart Renter is a map-based application that shows best real estate
+Smart Renter ([commitlogs.com/smartrenter](https://commitlogs.com/smartrenter)) is a map-based application that shows best real estate
 investment opportunities.
 
 A user can enter a property address (disclaimer: the default property

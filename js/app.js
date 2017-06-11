@@ -1,3 +1,5 @@
+'use strict';
+
 const SETTINGS = {
   ZWS_ID: "X1-ZWz196h1g1ceff_4eq90",
   MIN_ZOOM: 17
@@ -273,6 +275,15 @@ function addMarker(property, isPrincipalProperty = true) {
 
     infowindow.setContent(this.buborek);
     infowindow.open(map, this);
+  });
+
+  google.maps.event.addListener(infowindow, 'closeclick', function(){
+    markers.forEach(function(m) {
+      if (!m[2]) {
+        m[0].setIcon('https://www.google.com/mapfiles/marker_yellow.png');
+      }
+    });
+
   });
 
   markers.push([marker, property, isPrincipalProperty]);
